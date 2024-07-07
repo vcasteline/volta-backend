@@ -30,7 +30,7 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
       bookingId,
       {
         // @ts-ignore
-        populate: ["class", "class.instructor", "bicycle", "user"],
+        populate: ["class", "class.instructor", "bicycles", "user"],
       }
     );
     console.log(booking);

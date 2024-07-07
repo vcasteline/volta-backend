@@ -24,9 +24,9 @@
       "relation": "oneToOne",
       "target": "api::class.class"
     },
-    "bicycle": {
+    "bicycles": {
       "type": "relation",
-      "relation": "oneToOne",
+      "relation": "oneToMany",
       "target": "api::bicycle.bicycle"
     },
     "users_permissions_user": {

@@ -17,9 +17,9 @@
       "relation": "oneToOne",
       "target": "api::class.class"
     },
-    "bicycle": {
+    "bicycles": {
       "type": "relation",
-      "relation": "oneToOne",
+      "relation": "oneToMany",
       "target": "api::bicycle.bicycle"
     },
     "bookingStatus": {
@@ -38,6 +38,12 @@
     },
     "fechaHora": {
       "type": "datetime"
+    },
+    "guest": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::guest.guest",
+      "mappedBy": "booking"
     }
   }
 }

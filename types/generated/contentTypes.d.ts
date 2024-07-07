@@ -917,9 +917,9 @@ export interface ApiBookingBooking extends Schema.CollectionType {
       'oneToOne',
       'api::class.class'
     >;
-    bicycle: Attribute.Relation<
+    bicycles: Attribute.Relation<
       'api::booking.booking',
-      'oneToOne',
+      'oneToMany',
       'api::bicycle.bicycle'
     >;
     bookingStatus: Attribute.Enumeration<
@@ -931,6 +931,11 @@ export interface ApiBookingBooking extends Schema.CollectionType {
       'plugin::users-permissions.user'
     >;
     fechaHora: Attribute.DateTime;
+    guest: Attribute.Relation<
+      'api::booking.booking',
+      'oneToOne',
+      'api::guest.guest'
+    >;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -999,6 +1004,43 @@ export interface ApiClassClass extends Schema.CollectionType {
   };
 }
 
+export interface ApiGuestGuest extends Schema.CollectionType {
+  collectionName: 'guests';
+  info: {
+    singularName: 'guest';
+    pluralName: 'guests';
+    displayName: 'Guest';
+    description: '';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    nombreCompleto: Attribute.String & Attribute.Required;
+    email: Attribute.Email & Attribute.Required;
+    booking: Attribute.Relation<
+      'api::guest.guest',
+      'oneToOne',
+      'api::booking.booking'
+    >;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    publishedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'api::guest.guest',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'api::guest.guest',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
 export interface ApiInstructorInstructor extends Schema.CollectionType {
   collectionName: 'instructors';
   info: {
@@ -1052,9 +1094,9 @@ export interface ApiPastBookingPastBooking extends Schema.CollectionType {
       'oneToOne',
       'api::class.class'
     >;
-    bicycle: Attribute.Relation<
+    bicycles: Attribute.Relation<
       'api::past-booking.past-booking',
-      'oneToOne',
+      'oneToMany',
       'api::bicycle.bicycle'
     >;
     users_permissions_user: Attribute.Relation<
@@ -1205,6 +1247,7 @@ declare module '@strapi/types' {
       'api::bicycle.bicycle': ApiBicycleBicycle;
       'api::booking.booking': ApiBookingBooking;
       'api::class.class': ApiClassClass;
+      'api::guest.guest': ApiGuestGuest;
       'api::instructor.instructor': ApiInstructorInstructor;
       'api::past-booking.past-booking': ApiPastBookingPastBooking;
       'api::purchase-ride.purchase-ride': ApiPurchaseRidePurchaseRide;
