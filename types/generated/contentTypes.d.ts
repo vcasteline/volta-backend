@@ -1088,7 +1088,9 @@ export interface ApiPastBookingPastBooking extends Schema.CollectionType {
     draftAndPublish: true;
   };
   attributes: {
-    bookingStatus: Attribute.Enumeration<['refunded', 'completed']>;
+    bookingStatus: Attribute.Enumeration<
+      ['refunded', 'completed', 'cancelled']
+    >;
     class: Attribute.Relation<
       'api::past-booking.past-booking',
       'oneToOne',

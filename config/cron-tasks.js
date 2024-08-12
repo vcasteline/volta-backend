@@ -11,21 +11,39 @@ module.exports = {
             fechaHora: {
               $lt: cutoffDate,
             },
+            bookingStatus: "completed",
           },
-          populate: ["class", "bicycles", "user"],
+          populate: ["class", "bicycles", "user", "guest"],
         }
       );
   
+      let movedCount = 0;
       for (const oldBooking of oldBookings) {
-        const pastBookingData = {
-          bookingStatus: oldBooking.bookingStatus,
-          class: oldBooking.class,
-          bicycles: oldBooking.bicycles, // Cambiado de 'bicycle' a 'bicycles'
-          users_permissions_user: oldBooking.user,
-          fechaHora: oldBooking.fechaHora,
-        };
-  
         try {
+          // Verificar si ya existe en past-booking
+          const existingPastBooking = await strapi.entityService.findMany("api::past-booking.past-booking", {
+            filters: {
+              fechaHora: oldBooking.fechaHora,
+              users_permissions_user: oldBooking.user.id,
+              class: oldBooking.class.id
+            },
+            limit: 1
+          });
+
+          if (existingPastBooking.length > 0) {
+            console.log(`Booking ${oldBooking.id} already exists in past-bookings. Skipping.`);
+            continue; // Salta a la siguiente iteración del bucle
+          }
+
+          const pastBookingData = {
+            bookingStatus: oldBooking.bookingStatus,
+            class: oldBooking.class,
+            bicycles: oldBooking.bicycles,
+            users_permissions_user: oldBooking.user,
+            fechaHora: oldBooking.fechaHora,
+            guest: oldBooking.guest,
+          };
+  
           await strapi.entityService.create("api::past-booking.past-booking", {
             data: { ...pastBookingData, publishedAt: new Date() },
           });
@@ -34,15 +52,17 @@ module.exports = {
             "api::booking.booking",
             oldBooking.id
           );
+          
+          movedCount++;
         } catch (error) {
           console.error(`Error processing booking ${oldBooking.id}:`, error);
         }
       }
   
-      console.log(`Moved ${oldBookings.length} bookings to pastBookings table`);
+      console.log(`Moved ${movedCount} completed bookings to pastBookings table`);
     },
     options: {
-      rule: "*/15 * * * *", // Run every 15 minutes - para cada hora '0 * * * *'
+      rule: "*/15 * * * *", // Run every 15 minutes
     },
   },
   actualizarClasesPorExpiracion: {
