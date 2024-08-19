@@ -107,6 +107,12 @@
       "relation": "oneToMany",
       "target": "api::purchased-ride-pack.purchased-ride-pack",
       "mappedBy": "user"
+    },
+    "tokenized_cards": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::tokenized-card.tokenized-card",
+      "mappedBy": "users_permissions_user"
     }
   }
 }
