@@ -4,7 +4,8 @@
   "info": {
     "singularName": "tokenized-card",
     "pluralName": "tokenized-cards",
-    "displayName": "TokenizedCard"
+    "displayName": "TokenizedCard",
+    "description": ""
   },
   "options": {
     "draftAndPublish": true
@@ -18,7 +19,7 @@
       "inversedBy": "tokenized_cards"
     },
     "token": {
-      "type": "json"
+      "type": "string"
     }
   }
 }

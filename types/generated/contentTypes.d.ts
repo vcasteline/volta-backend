@@ -1238,6 +1238,7 @@ export interface ApiTokenizedCardTokenizedCard extends Schema.CollectionType {
     singularName: 'tokenized-card';
     pluralName: 'tokenized-cards';
     displayName: 'TokenizedCard';
+    description: '';
   };
   options: {
     draftAndPublish: true;
@@ -1248,7 +1249,7 @@ export interface ApiTokenizedCardTokenizedCard extends Schema.CollectionType {
       'manyToOne',
       'plugin::users-permissions.user'
     >;
-    token: Attribute.JSON;
+    token: Attribute.String;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
