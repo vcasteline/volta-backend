@@ -798,11 +798,6 @@ export interface PluginUsersPermissionsUser extends Schema.CollectionType {
       'oneToMany',
       'api::purchased-ride-pack.purchased-ride-pack'
     >;
-    tokenized_cards: Attribute.Relation<
-      'plugin::users-permissions.user',
-      'oneToMany',
-      'api::tokenized-card.tokenized-card'
-    >;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     createdBy: Attribute.Relation<
@@ -1232,42 +1227,6 @@ export interface ApiRoomRoom extends Schema.CollectionType {
   };
 }
 
-export interface ApiTokenizedCardTokenizedCard extends Schema.CollectionType {
-  collectionName: 'tokenized_cards';
-  info: {
-    singularName: 'tokenized-card';
-    pluralName: 'tokenized-cards';
-    displayName: 'TokenizedCard';
-    description: '';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    users_permissions_user: Attribute.Relation<
-      'api::tokenized-card.tokenized-card',
-      'manyToOne',
-      'plugin::users-permissions.user'
-    >;
-    token: Attribute.String;
-    createdAt: Attribute.DateTime;
-    updatedAt: Attribute.DateTime;
-    publishedAt: Attribute.DateTime;
-    createdBy: Attribute.Relation<
-      'api::tokenized-card.tokenized-card',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-    updatedBy: Attribute.Relation<
-      'api::tokenized-card.tokenized-card',
-      'oneToOne',
-      'admin::user'
-    > &
-      Attribute.Private;
-  };
-}
-
 declare module '@strapi/types' {
   export module Shared {
     export interface ContentTypes {
@@ -1296,7 +1255,6 @@ declare module '@strapi/types' {
       'api::purchase-ride.purchase-ride': ApiPurchaseRidePurchaseRide;
       'api::purchased-ride-pack.purchased-ride-pack': ApiPurchasedRidePackPurchasedRidePack;
       'api::room.room': ApiRoomRoom;
-      'api::tokenized-card.tokenized-card': ApiTokenizedCardTokenizedCard;
     }
   }
 }
