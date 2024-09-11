@@ -11,7 +11,9 @@ module.exports = {
             fechaHora: {
               $lt: cutoffDate,
             },
-            bookingStatus: "completed",
+            bookingStatus: {
+              $eq: "completed"  // Asegurarse de que solo se seleccionen los "completed"
+            },
           },
           populate: ["class", "bicycles", "user", "guest"],
         }

@@ -11,33 +11,29 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
         month: "short",
         day: "numeric",
       };
-      // @ts-ignore
-      const formattedDate = new Date(date).toLocaleDateString("en-US", options);
-      return formattedDate;
+      return new Date(date).toLocaleDateString("en-US", options);
     };
     function redondearHora(hora) {
       const [horas, minutos] = hora.split(":");
       const minutosRedondeados = Math.round(Number(minutos) / 5) * 5;
-      const nuevaHora = `${horas}:${minutosRedondeados
-        .toString()
-        .padStart(2, "0")}`;
-      return nuevaHora;
+      return `${horas}:${minutosRedondeados.toString().padStart(2, "0")}`;
     }
-    // Obtén la información del booking actualizado
+    
     const bookingId = ctx.params.id;
     const booking = await strapi.entityService.findOne(
       "api::booking.booking",
       bookingId,
       {
-        // @ts-ignore
-        populate: ["class", "class.instructor", "bicycles", "user"],
+        populate: ["class", "class.instructor", "bicycles", "user", "guest"],
       }
     );
     console.log(booking);
+    
     try {
-      // Verifica el estado de la reserva (booking status)
       if (booking.bookingStatus === "completed") {
-        // Envía el correo electrónico de confirmación cuando el estado es "completed"
+        // Obtén los números de bicicleta
+        const bicycleNumbers = booking.bicycles.map(b => b.bicycleNumber).join(", ");
+        
         await strapi
           .plugin("email-designer")
           .service("email")
@@ -46,8 +42,7 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
               to: booking.user.email,
             },
             {
-              templateReferenceId: 1, // ID de referencia de la plantilla de confirmación
-              //subject: 'Confirmación de reserva',
+              templateReferenceId: 1,
             },
             {
               class: booking.class.nombreClase,
@@ -55,12 +50,14 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
                 convertDate(booking.fechaHora) +
                 " a las " +
                 redondearHora(booking.class.horaInicio),
-              bicycle: booking.bicycle.bicycleNumber,
+              bicycle: bicycleNumbers,
               instructor: booking.class.instructor.nombreCompleto,
             }
           );
       } else if (booking.bookingStatus === "refunded") {
-        // Envía el correo electrónico de reembolso cuando el estado es "refunded"
+        // Similar cambio para el email de reembolso
+        const bicycleNumbers = booking.bicycles.map(b => b.bicycleNumber).join(", ");
+        
         await strapi
           .plugin("email-designer")
           .service("email")
@@ -69,8 +66,7 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
               to: booking.user.email,
             },
             {
-              templateReferenceId: 2, // ID de referencia de la plantilla de reembolso
-              //subject: 'Reembolso de reserva',
+              templateReferenceId: 2,
             },
             {
               class: booking.class.nombreClase,
@@ -78,15 +74,42 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
                 convertDate(booking.fechaHora) +
                 " a las " +
                 redondearHora(booking.class.horaInicio),
-              bicycle: booking.bicycle.bicycleNumber,
+              bicycle: bicycleNumbers,
               instructor: booking.class.instructor.nombreCompleto,
+            }
+          );
+      }
+  
+      // Manejo del email para el invitado
+      if (booking.guest) {
+        const bicycleNumbers = booking.bicycles.map(b => b.bicycleNumber).join(", ");
+        
+        await strapi
+          .plugin("email-designer")
+          .service("email")
+          .sendTemplatedEmail(
+            {
+              to: booking.guest.email,
+            },
+            {
+              templateReferenceId: 3,
+            },
+            {
+              class: booking.class.nombreClase,
+              fechaHora:
+                convertDate(booking.fechaHora) +
+                " a las " +
+                redondearHora(booking.class.horaInicio),
+              bicycle: bicycleNumbers,
+              instructor: booking.class.instructor.nombreCompleto,
+              invitedBy: `${booking.user.nombre} ${booking.user.apellido}`,
             }
           );
       }
     } catch (err) {
       console.error("Error al enviar el correo electrónico:", err);
     }
-
+  
     return response;
-  },
+  }
 }));
