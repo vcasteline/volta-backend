@@ -16,5 +16,12 @@ module.exports = () => ({
             defaultReplyTo: 'developmentvolta@gmail.com',
           },
         },
-      }
+      },
+      'users-permissions': {
+        config: {
+          jwt: {
+            expiresIn: '2y',
+          },
+        },
+      },
 });
