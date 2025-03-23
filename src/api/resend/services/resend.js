@@ -40,15 +40,16 @@ module.exports = {
           const dateObj = new Date(date);
           if (isNaN(dateObj.getTime())) return 'Fecha no válida';
           
-          // Obtener día de la semana y fecha
-          const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-          const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+          // Obtener día de la semana y fecha en zona horaria de Ecuador
+          const options = { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long',
+            timeZone: 'America/Guayaquil' // Zona horaria de Ecuador
+          };
           
-          const diaSemana = diasSemana[dateObj.getDay()];
-          const dia = dateObj.getDate();
-          const mes = meses[dateObj.getMonth()];
-          
-          return `${diaSemana}, ${mes} ${dia}`;
+          // Usar la API de Intl para formatear en español
+          return new Intl.DateTimeFormat('es-ES', options).format(dateObj);
         } catch (e) {
           console.error('Error al formatear fecha:', e);
           return String(date);
@@ -206,6 +207,9 @@ module.exports = {
       const emailFrom = process.env.RESEND_FROM_EMAIL || 'hola@volta.com';
       const defaultFrom = `Volta <${emailFrom}>`;
       const defaultReplyTo = process.env.RESEND_REPLY_TO || 'hola@volta.com';
+      console.log('enviarConfirmacionReserva', booking);
+      const fechaEcuador = new Date(booking.fecha_hora).toLocaleString('es-ES', { timeZone: 'America/Guayaquil' });
+      console.log('enviarConfirmacionReserva (hora Ecuador):', fechaEcuador);
 
       // Funciones mejoradas para formatear fechas y horas
       const formatDate = (date) => {
@@ -215,15 +219,16 @@ module.exports = {
           const dateObj = new Date(date);
           if (isNaN(dateObj.getTime())) return 'Fecha no válida';
           
-          // Obtener día de la semana y fecha
-          const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-          const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+          // Obtener día de la semana y fecha en zona horaria de Ecuador
+          const options = { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long',
+            timeZone: 'America/Guayaquil' // Zona horaria de Ecuador
+          };
           
-          const diaSemana = diasSemana[dateObj.getDay()];
-          const dia = dateObj.getDate();
-          const mes = meses[dateObj.getMonth()];
-          
-          return `${diaSemana}, ${mes} ${dia}`;
+          // Usar la API de Intl para formatear en español
+          return new Intl.DateTimeFormat('es-ES', options).format(dateObj);
         } catch (e) {
           console.error('Error al formatear fecha:', e);
           return String(date);
@@ -237,8 +242,13 @@ module.exports = {
           const dateObj = new Date(date);
           if (isNaN(dateObj.getTime())) return 'Hora no válida';
           
-          // Formato de 24 horas
-          const options = { hour: '2-digit', minute: '2-digit', hour12: false };
+          // Formato de 24 horas ajustado a la zona horaria de Ecuador
+          const options = { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: false,
+            timeZone: 'America/Guayaquil' // Zona horaria de Ecuador
+          };
           return dateObj.toLocaleTimeString('es-ES', options);
         } catch (e) {
           console.error('Error al formatear hora:', e);
