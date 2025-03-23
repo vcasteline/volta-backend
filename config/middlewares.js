@@ -1,53 +1,41 @@
 module.exports = [
-  "strapi::errors",
-  "strapi::poweredBy",
-  "strapi::logger",
-  "strapi::query",
-  "strapi::body",
-  "strapi::session",
-  "strapi::favicon",
-  "strapi::public",
+  'strapi::errors',
   {
-    name: "strapi::cors",
-    config: {
-      headers: [
-        "Content-Type",
-        "Authorization",
-        "Accept",
-        "Origin",
-        "Cache-Control",
-        "Pragma",
-      ],
-      origin: "*",
-      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      credentials: true,
-    },
-  },
-  {
-    name: "strapi::security",
+    name: 'strapi::security',
     config: {
       contentSecurityPolicy: {
         useDefaults: true,
         directives: {
-          "connect-src": ["'self'", "https:"],
-          "img-src": [
-            "'self'",
-            "data:",
-            "blob:",
-            "res.cloudinary.com",
-            "cdn.jsdelivr.net",
-            "strapi.io",
-            "s3.amazonaws.com",
-          ],
-          "media-src": ["'self'", "data:", "blob:", "res.cloudinary.com"],
-          "script-src": [
-            "'self'",
-            "editor.unlayer.com",
-            "editor.unlayer.com/embed.js",
-          ],
-          "frame-src": ["'self'", "editor.unlayer.com"],
+          'connect-src': ["'self'", 'https:'],
+          'img-src': ["'self'", 'data:', 'blob:', 'market-assets.strapi.io', 'res.cloudinary.com'],
+          'media-src': ["'self'", 'data:', 'blob:', 'market-assets.strapi.io', 'res.cloudinary.com'],
+          'script-src': ["'self'"],
+          'frame-src': ["'self'", 'editor.unlayer.com'],
+          upgradeInsecureRequests: null,
         },
       },
     },
+  },
+  'strapi::cors',
+  'strapi::poweredBy',
+  'strapi::logger',
+  'strapi::query',
+  {
+    name: 'strapi::body',
+    config: {
+      formLimit: '256mb',
+      jsonLimit: '256mb',
+      textLimit: '256mb',
+      formidable: {
+        maxFileSize: 250 * 1024 * 1024,
+      },
+    },
+  },
+  'strapi::session',
+  'strapi::favicon',
+  'strapi::public',
+  {
+    name: 'global::app-version-check',
+    config: {},
   },
 ];
