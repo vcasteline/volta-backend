@@ -23,10 +23,10 @@ module.exports = (config, { strapi }) => {
     
     // Rutas nuevas que no deben bloquearse
     const rutasNuevas = [
-      '/api/booking/reserve-and-update',
-      '/api/booking/cancel-and-refund',
-      '/booking/reserve-and-update',
-      '/booking/cancel-and-refund'
+      '/api/bookings/reserve-and-update',
+      '/api/bookings/cancel-and-refund',
+      '/bookings/reserve-and-update',
+      '/bookings/cancel-and-refund'
     ];
     
     // Obtener la ruta de la petición
@@ -34,8 +34,7 @@ module.exports = (config, { strapi }) => {
     
     // Si es una operación de creación o actualización en una ruta antigua y no es una ruta nueva
     if (
-      rutasAntiguas.includes(rutaActual) &&
-      !rutasNuevas.includes(rutaActual) &&
+      (rutasAntiguas.includes(rutaActual) || rutasNuevas.includes(rutaActual)) &&
       ['POST', 'PUT', 'DELETE'].includes(ctx.request.method)
     ) {
       strapi.log.warn(`Petición bloqueada a ruta antigua: ${rutaActual} - Método: ${ctx.request.method}`);
@@ -43,7 +42,7 @@ module.exports = (config, { strapi }) => {
       ctx.status = 426; // Upgrade Required
       ctx.body = {
         message: "Es necesario actualizar la app para usar el sistema de reservas. Por favor, descarga la última versión.",
-        error: {message: "Debes actualizar la app para usar el sistema de reservas. Por favor, descarga la última versión."}, // Usamos un código que dispare la lógica existente
+        error: {message: "Modo mantenimiento, estamos resolviendo problemas. Disculpe las molestias, desbloquearemos el acceso en breve."}, // Mensaje más amigable
         details: {
           bicicletasReservadas: [] // Para cumplir con el formato esperado
         }
