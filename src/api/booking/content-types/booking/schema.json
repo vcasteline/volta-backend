@@ -27,7 +27,8 @@
       "enum": [
         "refunded",
         "completed",
-        "cancelled"
+        "cancelled",
+        "failed"
       ]
     },
     "user": {
