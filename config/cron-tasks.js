@@ -5,9 +5,7 @@ module.exports = {
         // Obtener fecha actual en Ecuador
         const now = new Date();
         
-        // Restar 6.5 horas (5h por offset invertido + 1.5h buffer después de clase)
-        const cutoffTime = new Date(now.getTime() - (6.5 * 60 * 60 * 1000));
-
+        const cutoffTime = new Date(now.getTime() - (90 * 60 * 1000)); // 90 minutos = 1.5 horas
         // Logs para monitoreo
         console.log('=== INICIO CRON MOVE BOOKINGS ===');
         console.log('Hora actual Ecuador:', now.toLocaleString('es-EC', { timeZone: 'America/Guayaquil' }));
