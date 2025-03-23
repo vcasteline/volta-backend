@@ -113,16 +113,16 @@ module.exports = createCoreController('api::purchased-ride-pack.purchased-ride-p
           .insert({
             clases_originales: numeroDeClases,
             clases_utilizadas: 0,
-            fecha_compra: fechaCompra,
-            fecha_expiracion: fechaExpiracion,
+            fecha_compra: fechaCompra.toISOString(),
+            fecha_expiracion: fechaExpiracion.toISOString(),
             contabilizado: false,
             transaction_id: transactionId,
             authorization_code: authorizationCode,
             valor: valor,
             tipo: tipo,
-            created_at: new Date(),
-            updated_at: new Date(),
-            published_at: new Date()
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            published_at: new Date().toISOString()
           })
           .returning('*');
         
@@ -139,7 +139,7 @@ module.exports = createCoreController('api::purchased-ride-pack.purchased-ride-p
           .where({ id: userId })
           .update({
             clases_disponibles: clasesDisponiblesActuales + numeroDeClases,
-            updated_at: new Date()
+            updated_at: new Date().toISOString()
           })
           .returning('*');
         
@@ -156,8 +156,8 @@ module.exports = createCoreController('api::purchased-ride-pack.purchased-ride-p
             paquete: {
               ...paquete,
               clasesOriginales: numeroDeClases,
-              fechaCompra,
-              fechaExpiracion,
+              fechaCompra: fechaCompra.toISOString(),
+              fechaExpiracion: fechaExpiracion.toISOString(),
               transactionId,
               authorizationCode
             }
@@ -175,8 +175,8 @@ module.exports = createCoreController('api::purchased-ride-pack.purchased-ride-p
             clasesOriginales: numeroDeClases,
             clasesUtilizadas: 0,
             clasesDisponibles: numeroDeClases,
-            fechaCompra: fechaCompra,
-            fechaExpiracion: fechaExpiracion,
+            fechaCompra: fechaCompra.toISOString(),
+            fechaExpiracion: fechaExpiracion.toISOString(),
             transactionId: transactionId,
             authorizationCode: authorizationCode,
             valor: valor,

@@ -158,23 +158,28 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
       // 5. Verificar si alguna bicicleta ya está reservada
       console.log('Verificando bicicletas:', bicyclesNumeros, 'para clase:', classId, 'en fecha/hora:', fechaHora);
       
-      // Convertir la fecha a timestamp si es necesario
+      // Convertir la fecha a formato ISO para PostgreSQL
       let fechaHoraParam = fechaHora;
       if (typeof fechaHora === 'string') {
-        // Si es una cadena ISO, convertirla a timestamp
+        // Si es una cadena ISO, asegurarnos que es un formato válido
         const fechaObj = new Date(fechaHora);
         if (!isNaN(fechaObj.getTime())) {
-          fechaHoraParam = fechaObj.getTime();
+          // PostgreSQL necesita un formato ISO, no un timestamp en milisegundos
+          fechaHoraParam = fechaObj.toISOString();
         }
-      }      
+      } else if (typeof fechaHora === 'number') {
+        // Si es un timestamp en milisegundos, convertirlo a formato ISO
+        const fechaObj = new Date(fechaHora);
+        fechaHoraParam = fechaObj.toISOString();
+      }
+      
+      console.log('Fecha para consulta PostgreSQL:', fechaHoraParam);
+      
       // Consulta para verificar si alguna de las bicicletas solicitadas ya está reservada
       const queryBicicletasReservadas = knex('bookings')
         .join('bookings_bicycles_links', 'bookings.id', 'bookings_bicycles_links.booking_id')
         .whereIn('bookings_bicycles_links.bicycle_id', bicyclesNumeros)
-        .where(function() {
-          this.where('bookings.fecha_hora', fechaHora)
-              .orWhere('bookings.fecha_hora', fechaHoraParam);
-        })
+        .where('bookings.fecha_hora', fechaHoraParam) // Usar solo un formato de fecha consistente
         .where('bookings.booking_status', 'completed')
         .select('bookings_bicycles_links.bicycle_id', 'bookings.fecha_hora', 'bookings.booking_status');
       
@@ -212,10 +217,10 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
         const [booking] = await trx('bookings')
           .insert({
             booking_status: 'completed',
-            fecha_hora: fechaHora,
-            created_at: new Date(),
-            updated_at: new Date(),
-            published_at: new Date()
+            fecha_hora: fechaHoraParam, // Usar el formato ISO para PostgreSQL
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            published_at: new Date().toISOString()
           })
           .returning('*');
         
@@ -259,7 +264,7 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
               .where({ id: paquete.id })
               .update({
                 clases_utilizadas: paquete.clases_utilizadas + creditosAUsar,
-                updated_at: new Date()
+                updated_at: new Date().toISOString()
               })
               .returning('*');
             
@@ -273,7 +278,7 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
           .where({ id: userId })
           .update({
             clases_disponibles: user.clases_disponibles - creditosNecesarios,
-            updated_at: new Date()
+            updated_at: new Date().toISOString()
           })
           .returning('*');
         
@@ -426,7 +431,7 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
           .where({ id })
           .update({
             booking_status: 'cancelled',
-            published_at: new Date()
+            published_at: new Date().toISOString()
           })
           .returning('*');
 

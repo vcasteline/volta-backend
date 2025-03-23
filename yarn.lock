@@ -9646,9 +9646,9 @@ strapi-plugin-email-designer@^2.2.1:
     react-syntax-highlighter "^15.5.0"
     striptags "^3.2.0"
 
-strapi-plugin-excel-export@pedrogoiania/strapi-plugin-excel-export#feat/allow-multiple-field-in-relations:
+"strapi-plugin-excel-export@https://github.com/pedrogoiania/strapi-plugin-excel-export#feat/allow-multiple-field-in-relations":
   version "1.0.7"
-  resolved "git+ssh://git@github.com/pedrogoiania/strapi-plugin-excel-export.git#234e2fed839f08a30a904025f97227304e88c515"
+  resolved "https://github.com/pedrogoiania/strapi-plugin-excel-export#234e2fed839f08a30a904025f97227304e88c515"
   dependencies:
     "@strapi/design-system" "^1.6.3"
     "@strapi/helper-plugin" "^4.6.0"
