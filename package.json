@@ -23,7 +23,7 @@
     "react-router-dom": "5.3.4",
     "resend": "^4.1.2",
     "strapi-plugin-email-designer": "^2.2.1",
-    "strapi-plugin-excel-export": "pedrogoiania/strapi-plugin-excel-export#feat/allow-multiple-field-in-relations",
+    "strapi-plugin-excel-export": "https://github.com/pedrogoiania/strapi-plugin-excel-export#feat/allow-multiple-field-in-relations",
     "styled-components": "5.3.3"
   },
   "author": {
