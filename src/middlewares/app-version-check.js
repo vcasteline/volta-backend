@@ -34,7 +34,8 @@ module.exports = (config, { strapi }) => {
     
     // Si es una operación de creación o actualización en una ruta antigua y no es una ruta nueva
     if (
-      (rutasAntiguas.includes(rutaActual) || rutasNuevas.includes(rutaActual)) &&
+      rutasAntiguas.includes(rutaActual) &&
+      !rutasNuevas.includes(rutaActual) &&
       ['POST', 'PUT', 'DELETE'].includes(ctx.request.method)
     ) {
       strapi.log.warn(`Petición bloqueada a ruta antigua: ${rutaActual} - Método: ${ctx.request.method}`);
@@ -42,7 +43,7 @@ module.exports = (config, { strapi }) => {
       ctx.status = 426; // Upgrade Required
       ctx.body = {
         message: "Es necesario actualizar la app para usar el sistema de reservas. Por favor, descarga la última versión.",
-        error: {message: "Modo mantenimiento, estamos resolviendo problemas. Disculpe las molestias, desbloquearemos el acceso en breve."}, // Mensaje más amigable
+        error: {message: "Debes actualizar la app para usar el sistema de reservas. Por favor, descarga la última versión."}, // Usamos un código que dispare la lógica existente
         details: {
           bicicletasReservadas: [] // Para cumplir con el formato esperado
         }
