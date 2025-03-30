@@ -13,7 +13,9 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
     for (const bicycleId of bicycles) {
       const existingBookings = await strapi.entityService.findMany("api::booking.booking", {
         filters: {
-          fechaHora: fechaHora,
+          class: {
+            id: classId
+          },
           bicycles: {
             id: bicycleId
           },
@@ -40,7 +42,7 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
     // Similar validación para actualizaciones
     const { id } = ctx.params;
     const { data } = ctx.request.body;
-    const { bicycles, fechaHora } = data;
+    const { bicycles, fechaHora, class: classId } = data;
 
     if (bicycles) {
       for (const bicycleId of bicycles) {
@@ -49,7 +51,9 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
             id: {
               $ne: id  // Excluir la reserva actual
             },
-            fechaHora: fechaHora,
+            class: {
+              id: classId
+            },
             bicycles: {
               id: bicycleId
             },
@@ -95,8 +99,7 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
         .join('bookings_class_links', 'bookings.id', 'bookings_class_links.booking_id')
         .where({
           'bookings_user_links.user_id': userId,
-          'bookings_class_links.class_id': classId,
-          'bookings.fecha_hora': fechaHora,
+          'bookings_class_links.class_id': classId
         })
         .whereIn('bookings.booking_status', ['completed'])
         .select('bookings.id');
@@ -178,8 +181,10 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
       // Consulta para verificar si alguna de las bicicletas solicitadas ya está reservada
       const queryBicicletasReservadas = knex('bookings')
         .join('bookings_bicycles_links', 'bookings.id', 'bookings_bicycles_links.booking_id')
+        .join('bookings_class_links', 'bookings.id', 'bookings_class_links.booking_id')
         .whereIn('bookings_bicycles_links.bicycle_id', bicyclesNumeros)
-        .where('bookings.fecha_hora', fechaHoraParam) // Usar solo un formato de fecha consistente
+        .where('bookings_class_links.class_id', classId)
+        //.whereRaw("DATE(bookings.fecha_hora) = DATE(?)", [fechaHoraParam]) // Comparar solo por día
         .where('bookings.booking_status', 'completed')
         .select('bookings_bicycles_links.bicycle_id', 'bookings.fecha_hora', 'bookings.booking_status');
       
