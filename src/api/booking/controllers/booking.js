@@ -404,17 +404,17 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
         );
       }
       
-      // 3. Verificar el tiempo para cancelar
-      const fechaReserva = new Date(booking.fechaHora);
-      const ahora = new Date();
-      const horasParaClase = (fechaReserva.getTime() - ahora.getTime()) / (1000 * 60 * 60);
+      // // 3. Verificar el tiempo para cancelar
+      // const fechaReserva = new Date(booking.fechaHora);
+      // const ahora = new Date();
+      // const horasParaClase = (fechaReserva.getTime() - ahora.getTime()) / (1000 * 60 * 60);
       
-      if (horasParaClase < 2) {
-        return ctx.badRequest(
-          'Cancelación fuera de tiempo',
-          { message: 'No es posible cancelar con menos de 2 horas de antelación.' }
-        );
-      }
+      // if (horasParaClase < 2) {
+      //   return ctx.badRequest(
+      //     'Cancelación fuera de tiempo',
+      //     { message: 'No es posible cancelar con menos de 2 horas de antelación.' }
+      //   );
+      // }
 
       const knex = strapi.db.connection;
       const trx = await knex.transaction();

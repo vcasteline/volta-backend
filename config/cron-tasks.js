@@ -1,88 +1,127 @@
+const { DateTime } = require("luxon");
+
 module.exports = {
   moveBookingsIntoOldBookingsTable: {
     task: async ({ strapi }) => {
       try {
-        // Obtener fecha actual en Ecuador
-        const now = new Date();
-        
-        const cutoffTime = new Date(now.getTime() - (90 * 60 * 1000)); // 90 minutos = 1.5 horas
+        // Obtener fecha y hora actual en Ecuador
+        const ahoraEcuador = DateTime.now().setZone("America/Guayaquil");
+        const diaSemanaActual = ahoraEcuador.setLocale('es').weekdayLong; // e.g., 'Lunes', 'Martes' etc.
+        const horaActual = ahoraEcuador;
+
         // Logs para monitoreo
         console.log('=== INICIO CRON MOVE BOOKINGS ===');
-        console.log('Hora actual Ecuador:', now.toLocaleString('es-EC', { timeZone: 'America/Guayaquil' }));
-        console.log('Hora límite para bookings:', cutoffTime.toLocaleString('es-EC', { timeZone: 'America/Guayaquil' }));
+        console.log('Hora actual Ecuador:', ahoraEcuador.toISO());
+        console.log('Día semana Ecuador:', diaSemanaActual);
 
-        const bookingsToMove = await strapi.entityService.findMany("api::booking.booking", {
+        // Buscar bookings completados y poblar la clase asociada
+        const bookingsPorRevisar = await strapi.entityService.findMany("api::booking.booking", {
           filters: {
-            $and: [
-              { bookingStatus: { $eq: "completed" } },
-              { fechaHora: { $lt: cutoffTime.toISOString() } }
-            ]
+            bookingStatus: { $eq: "completed" }
           },
-          populate: ["class", "class.instructor", "bicycles", "user", "guest"],
+          populate: { 
+            class: { 
+              populate: { instructor: true } 
+            },
+            bicycles: true,
+            user: true,
+            guest: true
+          },
         });
 
-        console.log(`Encontrados ${bookingsToMove.length} bookings para mover`);
+        console.log(`Encontrados ${bookingsPorRevisar.length} bookings completados para revisar`);
 
-        for (const booking of bookingsToMove) {
+        for (const booking of bookingsPorRevisar) {
           try {
-            // Verificar si ya existe en past-booking
-            const existingPastBooking = await strapi.entityService.findMany("api::past-booking.past-booking", {
-              filters: {
-                fechaHora: booking.fechaHora,
-                users_permissions_user: booking.user.id
-              },
-              limit: 1
-            });
-
-            if (existingPastBooking.length > 0) {
-              console.log(`Booking ${booking.id} ya existe en past-bookings. Saltando.`);
+            // Validar que el booking tenga clase y datos necesarios
+            if (!booking.class || !booking.class.diaDeLaSemana || !booking.class.horaFin || !booking.user) {
+              console.log(`Booking ${booking.id} saltado por falta de datos (clase, dia, horaFin o usuario).`);
               continue;
             }
 
-            // Crear copias de los datos
-            const classData = {
-              nombreClase: booking.class.nombreClase || `Rueda con ${booking.class.instructor.nombreCompleto}`,
-              horaInicio: booking.class.horaInicio,
-              horaFin: booking.class.horaFin,
-              instructor: {
-                nombreCompleto: booking.class.instructor.nombreCompleto,
-                email: booking.class.instructor.email
+            const diaClase = booking.class.diaDeLaSemana;
+            const horaFinClaseStr = booking.class.horaFin; // formato HH:mm
+
+            // Comparar si el día de la semana coincide
+            if (diaClase.toLowerCase() === diaSemanaActual.toLowerCase()) {
+              // Parsear la hora de finalización
+              const [hFin, mFin] = horaFinClaseStr.split(':').map(Number);
+              if (isNaN(hFin) || isNaN(mFin)) {
+                console.log(`Booking ${booking.id} saltado, formato horaFin inválido: ${horaFinClaseStr}`);
+                continue;
               }
-            };
 
-            const bicyclesData = booking.bicycles.map(bike => ({
-              bicycleNumber: bike.bicycleNumber
-            }));
+              // Parsear la hora de inicio para usarla en past-booking
+              const horaInicioClaseStr = booking.class.horaInicio; // formato HH:mm
+              const [hInicio, mInicio] = horaInicioClaseStr.split(':').map(Number);
+              if (isNaN(hInicio) || isNaN(mInicio)) {
+                console.log(`Booking ${booking.id} saltado, formato horaInicio inválido: ${horaInicioClaseStr}`);
+                continue;
+              }
 
-            // Crear past-booking
-            await strapi.entityService.create("api::past-booking.past-booking", {
-              data: {
-                bookingStatus: booking.bookingStatus,
-                classData,
-                bicyclesData,
-                users_permissions_user: booking.user,
-                fechaHora: booking.fechaHora,
-                guest: booking.guest,
-                publishedAt: new Date()
-              },
-            });
+              // Crear fecha/hora de finalización para HOY en Ecuador (para la lógica de mover)
+              let horaFinClaseHoy = ahoraEcuador.set({ hour: hFin, minute: mFin, second: 0, millisecond: 0 });
+              
+              // Crear fecha/hora REAL de inicio de la clase para guardar en past-booking
+              const fechaHoraRealInicioClase = ahoraEcuador.set({ hour: hInicio, minute: mInicio, second: 0, millisecond: 0 });
 
-            // Eliminar booking original
-            await strapi.entityService.delete("api::booking.booking", booking.id);
+              // Calcular la hora límite (hora fin + 1 hora)
+              const horaLimiteParaMover = horaFinClaseHoy.plus({ hours: 1 });
+              
+              console.log(`Booking ${booking.id} - Clase ${booking.class.id} (${diaClase} ${horaFinClaseStr}). Hora límite: ${horaLimiteParaMover.toISO()}`);
 
-            console.log(`Booking ${booking.id} movido exitosamente a past-bookings`);
+              // Verificar si la hora actual ha superado la hora límite
+              if (horaActual >= horaLimiteParaMover) {
+                console.log(`Booking ${booking.id} cumple condición para moverse.`);
+                
+                // Crear copias de los datos
+                const classData = {
+                  nombreClase: booking.class.nombreClase || `Rueda con ${booking.class.instructor?.nombreCompleto || 'Instructor desconocido'}`, // Añadido fallback
+                  horaInicio: booking.class.horaInicio,
+                  horaFin: booking.class.horaFin,
+                  instructor: booking.class.instructor ? {
+                    nombreCompleto: booking.class.instructor.nombreCompleto,
+                    email: booking.class.instructor.email
+                  } : null // Manejar instructor nulo
+                };
+
+                const bicyclesData = booking.bicycles.map(bike => ({ // Asegurarse que bicycles no sea null
+                  bicycleNumber: bike.bicycleNumber
+                }));
+
+                // Crear past-booking
+                await strapi.entityService.create("api::past-booking.past-booking", {
+                  data: {
+                    bookingStatus: booking.bookingStatus,
+                    classData,
+                    bicyclesData,
+                    users_permissions_user: booking.user,
+                    publishedAt: new Date() // Usar ahora UTC
+                  },
+                });
+
+                // Eliminar booking original
+                await strapi.entityService.delete("api::booking.booking", booking.id);
+
+                console.log(`Booking ${booking.id} movido exitosamente a past-bookings`);
+              } else {
+                console.log(`Booking ${booking.id} aún no cumple la hora límite.`);
+              }
+            } else {
+              console.log(`Booking ${booking.id} no es del día de hoy (${diaSemanaActual}). Clase es de ${diaClase}`);
+            }
           } catch (error) {
-            console.error(`Error procesando booking ${booking.id}:`, error);
+            console.error(`Error procesando booking ${booking.id}:`, error.message, error.stack);
           }
         }
 
         console.log('=== FIN CRON MOVE BOOKINGS ===');
       } catch (error) {
-        console.error('Error en cron moveBookingsIntoOldBookingsTable:', error);
+        console.error('Error general en cron moveBookingsIntoOldBookingsTable:', error.message, error.stack);
       }
     },
     options: {
-      rule: '0 * * * *', // Ejecutar cada hora en el minuto 0
+      rule: '8 * * * *', // Ejecutar cada hora en el minuto 0
     },
   },
   actualizarClasesPorExpiracion: {
@@ -144,7 +183,7 @@ module.exports = {
       }
     },
     options: {
-      rule: '1 0 * * *', // 12:01 AM hora Ecuador
+      rule: '1 5 * * *', // 12:01 AM hora Ecuador (UTC-5)
     },
   }
 };
