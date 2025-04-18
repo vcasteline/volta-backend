@@ -121,7 +121,7 @@ module.exports = {
       }
     },
     options: {
-      rule: '8 * * * *', // Ejecutar cada hora en el minuto 0
+      rule: '0 * * * *', // Ejecutar cada hora en el minuto 0
     },
   },
   actualizarClasesPorExpiracion: {

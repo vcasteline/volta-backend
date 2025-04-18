@@ -1,6 +1,7 @@
 'use strict';
 
 const { Resend } = require('resend');
+const { DateTime } = require('luxon');
 
 /**
  * Servicio para enviar correos electrónicos usando Resend
@@ -203,59 +204,110 @@ module.exports = {
   async enviarConfirmacionReserva({ user, booking, clase, bicycles }) {
     try {
       const resend = this.getClient();
-      // Obtener valores desde las variables de entorno
       const emailFrom = process.env.RESEND_FROM_EMAIL || 'hola@volta.com';
       const defaultFrom = `Volta <${emailFrom}>`;
       const defaultReplyTo = process.env.RESEND_REPLY_TO || 'hola@volta.com';
-      console.log('enviarConfirmacionReserva', booking);
-      const fechaEcuador = new Date(booking.fecha_hora).toLocaleString('es-ES', { timeZone: 'America/Guayaquil' });
-      console.log('enviarConfirmacionReserva (hora Ecuador):', fechaEcuador);
-
-      // Funciones mejoradas para formatear fechas y horas
-      const formatDate = (date) => {
-        if (!date) return 'Fecha no disponible';
-        
+      
+      // --- Lógica para formatear fechas y horas --- 
+      const formatDate = (dateInput) => {
+        if (!dateInput) return 'Fecha no disponible';
         try {
-          const dateObj = new Date(date);
+          // Asegurarse de que trabajamos con un objeto Date de JS
+          const dateObj = dateInput instanceof Date ? dateInput : new Date(dateInput);
           if (isNaN(dateObj.getTime())) return 'Fecha no válida';
           
-          // Obtener día de la semana y fecha en zona horaria de Ecuador
           const options = { 
             weekday: 'long', 
             day: 'numeric', 
             month: 'long',
-            timeZone: 'America/Guayaquil' // Zona horaria de Ecuador
+            timeZone: 'America/Guayaquil' 
           };
-          
-          // Usar la API de Intl para formatear en español
           return new Intl.DateTimeFormat('es-ES', options).format(dateObj);
         } catch (e) {
           console.error('Error al formatear fecha:', e);
-          return String(date);
+          return 'Fecha inválida';
         }
       };
 
-      const formatTime = (date) => {
-        if (!date) return 'Hora no disponible';
-        
+      const formatTime = (dateInput) => {
+        if (!dateInput) return 'Hora no disponible';
         try {
-          const dateObj = new Date(date);
+          // Asegurarse de que trabajamos con un objeto Date de JS
+          const dateObj = dateInput instanceof Date ? dateInput : new Date(dateInput);
           if (isNaN(dateObj.getTime())) return 'Hora no válida';
           
-          // Formato de 24 horas ajustado a la zona horaria de Ecuador
           const options = { 
             hour: '2-digit', 
             minute: '2-digit', 
             hour12: false,
-            timeZone: 'America/Guayaquil' // Zona horaria de Ecuador
+            timeZone: 'America/Guayaquil' 
           };
           return dateObj.toLocaleTimeString('es-ES', options);
         } catch (e) {
           console.error('Error al formatear hora:', e);
-          return String(date);
+          return 'Hora inválida';
         }
       };
+      // --- Fin Lógica para formatear --- 
+    
+      // --- Obtener fecha y hora correctas --- 
+      let fechaHoraRealClase = null;
+      const claseDiaSemana = clase?.dia_de_la_semana;
+      const claseHoraInicio = clase?.hora_inicio;
 
+      const spanishWeekdays = {
+        'lunes': 1,
+        'martes': 2,
+        'miércoles': 3,
+        'jueves': 4,
+        'viernes': 5,
+        'sábado': 6,
+        'domingo': 7,
+      };
+      
+      if (claseDiaSemana && claseHoraInicio) {
+        try {
+          const targetWeekdayNumber = spanishWeekdays[claseDiaSemana.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "")]; // Normalizar y quitar acentos
+          
+          if (targetWeekdayNumber) {
+            const [hInicio, mInicio] = claseHoraInicio.split(':').map(Number);
+            
+            if (!isNaN(hInicio) && !isNaN(mInicio)) {
+              const nowEcuador = DateTime.now().setZone('America/Guayaquil');
+              
+              // Ajustar la fecha a la del día de la semana objetivo en la semana actual
+              const targetDate = nowEcuador.set({ weekday: targetWeekdayNumber });
+              
+              // Combinar la fecha objetivo con la hora de inicio
+              fechaHoraRealClase = targetDate.set({ 
+                hour: hInicio, 
+                minute: mInicio, 
+                second: 0, 
+                millisecond: 0 
+              });
+              
+              // Doble chequeo de validez por si acaso
+              if (!fechaHoraRealClase.isValid) {
+                console.error('Error al construir fechaHoraRealClase final con Luxon:', fechaHoraRealClase.invalidReason);
+                fechaHoraRealClase = null; 
+              }
+
+            } else {
+              console.error('Formato inválido para claseHoraInicio:', claseHoraInicio);
+            }
+          } else {
+             console.error('Día de la semana inválido o no mapeado:', claseDiaSemana);
+          }
+        } catch(err) {
+            console.error('Error al construir fechaHoraRealClase con Luxon (nueva lógica):', err);
+        }
+      }
+      // --- Fin Obtener fecha y hora correctas --- 
+
+      // Variables para el template, usando la fecha/hora real si está disponible
+      const fechaReserva = fechaHoraRealClase ? formatDate(fechaHoraRealClase.toJSDate()) : 'Fecha no disponible';
+      const horaReserva = fechaHoraRealClase ? formatTime(fechaHoraRealClase.toJSDate()) : 'Hora no disponible';
+      
       // Extraer información del instructor de manera segura
       let instructorName = 'No especificado';
       
@@ -292,16 +344,6 @@ module.exports = {
             return bike.id || '?';
           }
         });
-      }
-
-      // Verificar si tenemos datos válidos para fecha y hora
-      let fechaReserva = 'Fecha no disponible';
-      let horaReserva = 'Hora no disponible';
-      
-      if (booking?.fechaHora || booking?.fecha_hora) {
-        const fechaHora = booking.fechaHora || booking.fecha_hora;
-        fechaReserva = formatDate(fechaHora);
-        horaReserva = formatTime(fechaHora);
       }
 
       const result = await resend.emails.send({

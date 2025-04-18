@@ -406,7 +406,7 @@ module.exports = createCoreController("api::booking.booking", ({ strapi }) => ({
       
       // // 3. Verificar el tiempo para cancelar
       // const fechaReserva = new Date(booking.fechaHora);
-      // const ahora = new Date();
+      const ahora = new Date();
       // const horasParaClase = (fechaReserva.getTime() - ahora.getTime()) / (1000 * 60 * 60);
       
       // if (horasParaClase < 2) {
