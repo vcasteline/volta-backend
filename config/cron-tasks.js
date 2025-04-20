@@ -6,6 +6,16 @@ module.exports = {
       try {
         // Obtener fecha y hora actual en Ecuador
         const ahoraEcuador = DateTime.now().setZone("America/Guayaquil");
+        
+        // *** QUICK FIX: No ejecutar los domingos >= 12:00 PM Ecuador ***
+        const currentWeekday = ahoraEcuador.weekday; // 1 (Mon) - 7 (Sun)
+        const currentHour = ahoraEcuador.hour; // 0 - 23
+        if (currentWeekday === 7 && currentHour >= 12) {
+          console.log('=== CRON MOVE BOOKINGS SKIPPED (Domingo >= 12:00 PM Ecuador) ===');
+          return; // Salir de la tarea
+        }
+        // *** FIN QUICK FIX ***
+        
         const diaSemanaActual = ahoraEcuador.setLocale('es').weekdayLong; // e.g., 'Lunes', 'Martes' etc.
         const horaActual = ahoraEcuador;
 
