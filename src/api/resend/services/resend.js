@@ -274,9 +274,15 @@ module.exports = {
             
             if (!isNaN(hInicio) && !isNaN(mInicio)) {
               const nowEcuador = DateTime.now().setZone('America/Guayaquil');
+
+              // Determinar si debemos usar la próxima semana
+              const usarProximaSemana = nowEcuador.weekday === 7 && nowEcuador.hour >= 12; // Domingo y 12 PM o más tarde
               
-              // Ajustar la fecha a la del día de la semana objetivo en la semana actual
-              const targetDate = nowEcuador.set({ weekday: targetWeekdayNumber });
+              // Ajustar la fecha base si es necesario
+              const fechaBase = usarProximaSemana ? nowEcuador.plus({ weeks: 1 }) : nowEcuador;
+              
+              // Ajustar la fecha a la del día de la semana objetivo en la semana actual o siguiente
+              const targetDate = fechaBase.set({ weekday: targetWeekdayNumber });
               
               // Combinar la fecha objetivo con la hora de inicio
               fechaHoraRealClase = targetDate.set({ 
