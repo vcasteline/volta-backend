@@ -27,7 +27,7 @@ module.exports = {
         // Buscar bookings completados y poblar la clase asociada
         const bookingsPorRevisar = await strapi.entityService.findMany("api::booking.booking", {
           filters: {
-            bookingStatus: { $eq: "completed" }
+            bookingStatus: { $in: ["completed", "cancelled"] }
           },
           populate: { 
             class: { 
@@ -39,7 +39,7 @@ module.exports = {
           },
         });
 
-        console.log(`Encontrados ${bookingsPorRevisar.length} bookings completados para revisar`);
+        console.log(`Encontrados ${bookingsPorRevisar.length} bookings para revisar`);
 
         for (const booking of bookingsPorRevisar) {
           try {
@@ -84,36 +84,42 @@ module.exports = {
               if (horaActual >= horaLimiteParaMover) {
                 console.log(`Booking ${booking.id} cumple condición para moverse.`);
                 
-                // Crear copias de los datos
-                const classData = {
-                  nombreClase: booking.class.nombreClase || `Rueda con ${booking.class.instructor?.nombreCompleto || 'Instructor desconocido'}`, // Añadido fallback
-                  horaInicio: booking.class.horaInicio,
-                  horaFin: booking.class.horaFin,
-                  instructor: booking.class.instructor ? {
-                    nombreCompleto: booking.class.instructor.nombreCompleto,
-                    email: booking.class.instructor.email
-                  } : null // Manejar instructor nulo
-                };
+                // Si el booking está cancelado, simplemente eliminarlo
+                if (booking.bookingStatus === 'cancelled') {
+                  await strapi.entityService.delete("api::booking.booking", booking.id);
+                  console.log(`Booking ${booking.id} con status 'cancelled' eliminado.`);
+                } else {
+                  // Crear copias de los datos para bookings completados
+                  const classData = {
+                    nombreClase: booking.class.nombreClase || `Rueda con ${booking.class.instructor?.nombreCompleto || 'Instructor desconocido'}`, // Añadido fallback
+                    horaInicio: booking.class.horaInicio,
+                    horaFin: booking.class.horaFin,
+                    instructor: booking.class.instructor ? {
+                      nombreCompleto: booking.class.instructor.nombreCompleto,
+                      email: booking.class.instructor.email
+                    } : null // Manejar instructor nulo
+                  };
 
-                const bicyclesData = booking.bicycles.map(bike => ({ // Asegurarse que bicycles no sea null
-                  bicycleNumber: bike.bicycleNumber
-                }));
+                  const bicyclesData = booking.bicycles.map(bike => ({ // Asegurarse que bicycles no sea null
+                    bicycleNumber: bike.bicycleNumber
+                  }));
 
-                // Crear past-booking
-                await strapi.entityService.create("api::past-booking.past-booking", {
-                  data: {
-                    bookingStatus: booking.bookingStatus,
-                    classData,
-                    bicyclesData,
-                    users_permissions_user: booking.user,
-                    publishedAt: new Date() // Usar ahora UTC
-                  },
-                });
+                  // Crear past-booking SOLO para bookings completados
+                  await strapi.entityService.create("api::past-booking.past-booking", {
+                    data: {
+                      bookingStatus: booking.bookingStatus,
+                      classData,
+                      bicyclesData,
+                      users_permissions_user: booking.user,
+                      publishedAt: new Date() // Usar ahora UTC
+                    },
+                  });
 
-                // Eliminar booking original
-                await strapi.entityService.delete("api::booking.booking", booking.id);
+                  // Eliminar booking original
+                  await strapi.entityService.delete("api::booking.booking", booking.id);
 
-                console.log(`Booking ${booking.id} movido exitosamente a past-bookings`);
+                  console.log(`Booking ${booking.id} movido exitosamente a past-bookings`);
+                }
               } else {
                 console.log(`Booking ${booking.id} aún no cumple la hora límite.`);
               }
