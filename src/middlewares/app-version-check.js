@@ -1,58 +1,89 @@
 'use strict';
 
 /**
- * Middleware para detectar versiones antiguas de la app y forzar actualización
+ * Middleware para bloquear solo las rutas de reservas y pagos (Nuvei)
  * 
- * Este middleware bloquea peticiones a las rutas antiguas usadas por versiones
- * obsoletas de la app, indicando al usuario que necesita actualizar.
+ * Este middleware bloquea únicamente las acciones de reservas y pagos, 
+ * permitiendo que el resto de la API funcione normalmente.
  */
 
 module.exports = (config, { strapi }) => {
   return async (ctx, next) => {
-    // Rutas que solo usa la versión antigua de la app
-    const rutasAntiguas = [
-      '/api/booking',
-      '/api/bookings',
-      '/api/booking/create',
-      '/api/booking/update',
-      '/booking/create',
-      '/bookings/create',
-      '/booking/update',
-      '/bookings/update'
-    ];
-    
-    // Rutas nuevas que no deben bloquearse
-    const rutasNuevas = [
+    // Rutas que SÍ deben bloquearse (reservas y pagos)
+    const rutasBloqueadas = [
+      // Rutas de reservas
       '/api/bookings/reserve-and-update',
-      '/api/bookings/cancel-and-refund',
+      '/api/bookings',
       '/bookings/reserve-and-update',
-      '/bookings/cancel-and-refund'
+      '/bookings',
+      '/api/nuvei/auth-token',
+      '/nuvei/auth-token',
+      // Rutas de cancelación de reservas
+      '/api/bookings/cancel-and-refund',
+      '/bookings/cancel-and-refund',
+      // Rutas de Nuvei (pagos)
+      '/api/nuvei',
+      '/nuvei',
+      // Rutas de compra de paquetes
+      '/api/purchased-ride-packs/comprar-con-transaccion',
+      '/api/purchased-ride-packs',
+      '/purchased-ride-packs/comprar-con-transaccion',
+      '/purchased-ride-packs'
     ];
     
     // Obtener la ruta de la petición
     const rutaActual = ctx.request.url;
+    const metodo = ctx.request.method;
     
-    // Si es una operación de creación o actualización en una ruta antigua y no es una ruta nueva
-    if (
-      rutasAntiguas.includes(rutaActual) &&
-      !rutasNuevas.includes(rutaActual) &&
-      ['POST', 'PUT', 'DELETE'].includes(ctx.request.method)
-    ) {
-      strapi.log.warn(`Petición bloqueada a ruta antigua: ${rutaActual} - Método: ${ctx.request.method}`);
+    // Verificar si es una ruta que debe bloquearse
+    const esRutaBloqueada = rutasBloqueadas.some(ruta => {
+      // Para rutas exactas
+      if (rutaActual === ruta) return true;
+      
+      // Para rutas con parámetros (ej: /api/bookings/123)
+      if (ruta.endsWith('s') && rutaActual.startsWith(ruta + '/')) return true;
+      
+      return false;
+    });
+    
+    // Verificar si es una ruta de Nuvei (bloquear todos los métodos)
+    const esRutaNuvei = rutaActual.includes('/nuvei');
+    
+    // Bloquear: operaciones de escritura en todas las rutas + TODOS los métodos en rutas de Nuvei
+    if (esRutaBloqueada && (['POST', 'PUT', 'DELETE'].includes(metodo) || esRutaNuvei)) {
+      strapi.log.warn(`Ruta bloqueada - Petición a: ${rutaActual} - Método: ${metodo}`);
       
       ctx.status = 426; // Upgrade Required
-      ctx.body = {
-        message: "Es necesario actualizar la app para usar el sistema de reservas. Por favor, descarga la última versión.",
-        error: {message: "Debes actualizar la app para usar el sistema de reservas. Por favor, descarga la última versión."}, // Usamos un código que dispare la lógica existente
-        details: {
-          bicicletasReservadas: [] // Para cumplir con el formato esperado
-        }
-      };
+      
+      // Si es una ruta de Nuvei, usar formato específico para la UI
+      if (esRutaNuvei) {
+        ctx.body = {
+          message: "Es necesario actualizar la aplicación para realizar pagos. Por favor, descarga la última versión desde la tienda de aplicaciones.",
+          error: "Debes actualizar la aplicación para realizar pagos. Por favor, descarga la última versión desde la tienda de aplicaciones.",
+          details: {
+            updateRequired: true,
+            blockedAction: "pagos_nuvei"
+          }
+        };
+      } else {
+        // Para otras rutas (reservas, etc.)
+        ctx.body = {
+          message: "Es necesario actualizar la aplicación para realizar reservas. Por favor, descarga la última versión desde la tienda de aplicaciones.",
+          error: {
+            message: "Debes actualizar la aplicación para realizar reservas. Por favor, descarga la última versión desde la tienda de aplicaciones.",
+            code: "UPDATE_REQUIRED"
+          },
+          details: {
+            updateRequired: true,
+            blockedAction: "reservas"
+          }
+        };
+      }
       
       return;
     }
     
-    // Continuar con la petición si no es una ruta antigua o es solo lectura
+    // Continuar con la petición si no es una ruta bloqueada
     await next();
   };
 }; 
