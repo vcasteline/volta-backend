@@ -9,7 +9,7 @@
 
 module.exports = (config, { strapi }) => {
   return async (ctx, next) => {
-    // Rutas que SÍ deben bloquearse (reservas y pagos)
+    // Rutas que SÍ deben bloquearse (reservas, pagos y registro)
     const rutasBloqueadas = [
       // Rutas de reservas
       '/api/bookings/reserve-and-update',
@@ -28,7 +28,9 @@ module.exports = (config, { strapi }) => {
       '/api/purchased-ride-packs/comprar-con-transaccion',
       '/api/purchased-ride-packs',
       '/purchased-ride-packs/comprar-con-transaccion',
-      '/purchased-ride-packs'
+      '/purchased-ride-packs',
+      // Rutas de registro de usuarios
+      '/api/auth/local/register'
     ];
     
     // Obtener la ruta de la petición
@@ -46,8 +48,9 @@ module.exports = (config, { strapi }) => {
       return false;
     });
     
-    // Verificar si es una ruta de Nuvei (bloquear todos los métodos)
+    // Verificar tipos de rutas bloqueadas
     const esRutaNuvei = rutaActual.includes('/nuvei');
+    const esRutaRegistro = rutaActual.includes('/auth/local/register');
     
     // Bloquear: operaciones de escritura en todas las rutas + TODOS los métodos en rutas de Nuvei
     if (esRutaBloqueada && (['POST', 'PUT', 'DELETE'].includes(metodo) || esRutaNuvei)) {
@@ -63,6 +66,19 @@ module.exports = (config, { strapi }) => {
           details: {
             updateRequired: true,
             blockedAction: "pagos_nuvei"
+          }
+        };
+      } else if (esRutaRegistro) {
+        // Para registro de usuarios
+        ctx.body = {
+          message: "Es necesario actualizar la aplicación para registrar nuevos usuarios. Por favor, descarga la última versión desde la tienda de aplicaciones.",
+          error: {
+            message: "Debes actualizar la aplicación para registrar nuevos usuarios. Por favor, descarga la última versión desde la tienda de aplicaciones.",
+            code: "UPDATE_REQUIRED"
+          },
+          details: {
+            updateRequired: true,
+            blockedAction: "registro_usuarios"
           }
         };
       } else {
